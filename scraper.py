@@ -5,6 +5,8 @@ from urllib.request import urlparse, urljoin
 from bs4 import BeautifulSoup
 import colorama
 from tld import get_tld
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # init the colorama module
 colorama.init()
@@ -15,6 +17,7 @@ RESET = colorama.Fore.RESET
 
 # initialize the set of links (unique links)
 external_urls = set()
+locationOfLinks = set()
 
 total_urls_visited = 0
 
@@ -34,7 +37,7 @@ def get_all_website_links(url):
     urls = set()
     # domain name of the URL without the protocol
     domain_name = urlparse(url).netloc
-    soup = BeautifulSoup(requests.get(url, verify=False).content, "html.parser")
+    soup = BeautifulSoup(requests.get(url, verify=False, timeout=3.05).content, "html.parser")
     for a_tag in soup.findAll("a"):
         href = a_tag.attrs.get("href")
         if href == "" or href is None:
@@ -58,14 +61,17 @@ def get_all_website_links(url):
                 if topLevel != "mil" and topLevel != "gov":
                     if href not in external_urls:
                         print(f"{GRAY}[!] External link: {href}{RESET}")
+                        print("Found at: " + url)
                         external_urls.add(href)
+                        locationOfLink.add(url)
             except: 
                 pass
             continue
+        urls.add(href)
     return urls
 
 
-def crawl(url, max_urls=50):
+def crawl(url, max_urls=100):
     """
     Crawls a web page and extracts all links.
     You'll find all links in `external_urls` and `internal_urls` global set variables.
@@ -84,7 +90,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Link Extractor Tool with Python")
     parser.add_argument("url", help="The URL to extract links from.")
-    parser.add_argument("-m", "--max-urls", help="Number of max URLs to crawl, default is 30.", default=30, type=int)
+    parser.add_argument("-m", "--max-urls", help="Number of max URLs to crawl, default is 100.", default=100, type=int)
     
     args = parser.parse_args()
     url = args.url
